@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel='stylesheet' href='/stylesheets/style.css'/>
+    <link rel="stylesheet" href="/stylesheets/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/stylesheets/bootstrap-theme.min.css"/>
+</head>
+<body>
+
+    <div class="modal fade" id="updateForm">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Nastavenia senzoru ...</h4>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="sensorName" class="control-label">Názov:</label>
+                            <input type="text" class="form-control" id="sensorName">
+                        </div>
+                        <div class="form-group">
+                            <label for="alarmThreshold" class="control-label">Hranica pre alarm:</label>
+                            <input type="number" class="form-control" id="alarmThreshold">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Zrušiť</button>
+                    <button type="button" class="btn btn-primary" id="submitUpdateForm">Uložiť</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">TempWatch</a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li>
+                        <a href="/dashboard">Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <table class="table">
+                <tr>
+                    <th>Názov</th>
+                    <th>Hodnota</th>
+                    <th>Možnosti</th>
+                </tr>
+                {{#temp}}
+                <tr>
+                    <td>{{name}}</td>
+                    <td>{{value}}</td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-lg"
+                                data-toggle="modal" data-target="#updateForm"
+                                id="name-{{sensorId}}"
+                                data-sensorId="{{sensorId}}"
+                                data-name="{{name}}"
+                                data-alarmThreshold="{{alarmThreshold}}">
+                            <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+                        </button>
+                    </td>
+                </tr>
+                {{/temp}}
+            </table>
+        </div>
+    </div>
+
+    {{#temp}}
+        <div class="panel panel-default">
+            <div class="chart" data-sensorId="{{sensorId}}" data-name="{{name}}" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+        </div>
+    {{/temp}}
+
+    <script type="application/javascript" src="/javascripts/jquery-2.1.1.min.js"></script>
+    <script type="application/javascript" src="/javascripts/bootstrap.min.js"></script>
+    <script type="application/javascript" src="/javascripts/highcharts.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            var sensorId = null;
+            var updateForm = $("#updateForm");
+
+            // fill form data
+            updateForm.on('show.bs.modal', function(e) {
+                var caller = $(e.relatedTarget);
+                sensorId = caller.attr('data-sensorId');
+                var name = caller.attr('data-name');
+                var alarmThreshold = caller.attr('data-alarmThreshold');
+
+                var modal = $(this);
+                modal.find('.modal-title').text('Nastavenia senzoru ' + sensorId);
+                // inputs
+                modal.find('.modal-body input#sensorName').val(name);
+                modal.find('.modal-body input#alarmThreshold').val(alarmThreshold);
+            });
+
+            // send data to server
+            updateForm.find("#submitUpdateForm").click(function () {
+                $.ajax({
+                    type: "PUT",
+                    url: "/temp/" + sensorId,
+                    data: {
+                        name: updateForm.find("input#sensorName").val(),
+                        alarmThreshold: updateForm.find("input#alarmThreshold").val()
+                    }
+                }).done(function () {
+                    updateForm.modal('hide');
+                    location.reload();
+                });
+            });
+
+            // Highcharts
+            Highcharts.setOptions({
+                global : {
+                    useUTC : false // This is for all plots, change Date axis to local timezone
+                }
+            });
+
+            $(".chart").each(function () {
+                var chart = $(this);
+                var sensorId = chart.attr("data-sensorId");
+                var name = chart.attr("data-name");
+
+                var options = {
+                    chart: {
+                        type: 'spline'
+                    },
+                    title: {
+                        text: name
+                    },
+                    subtitle: {
+                        text: 'Teplota za poslednú hodinu'
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        title: {
+                            text: 'Čas'
+                        }
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Teplota (°C)'
+                        }
+                    },
+                    tooltip: {
+                        headerFormat: '<b>{series.name}</b><br>',
+                        pointFormat: '{point.x:%e. %b %H:%M} --- {point.y:.2f} °C'
+                    },
+                    series: []
+                };
+
+                var hourAgo = Date.now() - (3600 * 1000);
+
+                $.getJSON("/temp/records/" + sensorId + "?from=" + hourAgo, function (data) {
+                    options.series[0] = {
+                        name: name,
+                        data: data
+                    };
+                    chart.highcharts(options);
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>

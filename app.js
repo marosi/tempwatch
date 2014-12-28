@@ -1,3 +1,7 @@
+// persistence
+require('./db');
+require('./scheduler');
+
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -24,6 +28,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 app.use('/users', users);
+app.use('/dashboard', require('./routes/dashboard'));
+app.use('/temp', require('./routes/temp'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
