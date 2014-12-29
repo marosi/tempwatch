@@ -70,7 +70,7 @@
                 {{#temp}}
                 <tr>
                     <td>{{name}}</td>
-                    <td>{{value}}</td>
+                    <td class="sensorValue" data-sensorId="{{sensorId}}">{{value}}</td>
                     <td>
                         <button type="button" class="btn btn-primary btn-lg"
                                 data-toggle="modal" data-target="#updateForm"
@@ -181,6 +181,17 @@
                     };
                     chart.highcharts(options);
                 });
+            });
+
+            $(".sensorValue").each(function () {
+                var element = $(this);
+                var sensorId = element.attr('data-sensorId');
+                // fire every 5 secs
+                setInterval(function () {
+                    $.getJSON("/temp/" + sensorId, function (data) {
+                        element.html(data.value);
+                    });
+                }, 5000);
             });
 
         });

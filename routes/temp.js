@@ -3,6 +3,7 @@ var router = express.Router();
 var mongoose = require('mongoose');
 var Temp = mongoose.model('Temp');
 var TempRecord = mongoose.model('TempRecord');
+var sensor = require('ds18x20');
 
 router.put('/:sensorId', function (req, res) {
 
@@ -17,6 +18,11 @@ router.put('/:sensorId', function (req, res) {
             res.send("OK");
         }
     });
+});
+
+router.get('/:sensorId', function (req, res) {
+    var data = { value: sensor.get(req.params.sensorId) };
+    res.send(data);
 });
 
 router.get('/records/:sensorId', function (req, res) {
