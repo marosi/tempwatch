@@ -17,7 +17,6 @@ router.get('/', function(req, res) {
         });
     }
     var availableTemps = sensor.getAll();
-    //var availableTemps = { ab123: 23.35, cd576: 21.05 };
 
     // data for template rendering
     var data = { temp: [] };

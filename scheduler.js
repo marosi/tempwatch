@@ -18,10 +18,7 @@ setTimeout(function () {
 
 function record() {
 
-    console.log("recording...");
-
     var temps = sensor.getAll();
-    //var temps = { ab123: 23.35, cd576: 21.05 };
 
     for (var key in temps) {
         if (temps.hasOwnProperty(key)) {
